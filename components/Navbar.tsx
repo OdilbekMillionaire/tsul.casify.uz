@@ -118,21 +118,37 @@ const Navbar: React.FC<NavbarProps> = ({ currentLang, setLang, t, setView }) => 
 
             {/* Mobile Menu Button */}
             <button 
-                className="md:hidden p-2 text-gray-600 hover:text-navy-900 hover:bg-gray-100 rounded-lg transition-colors"
+                className="md:hidden p-2 text-gray-600 hover:text-navy-900 hover:bg-gray-100 rounded-lg transition-colors z-50"
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                aria-label="Toggle Menu"
             >
                 {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
       </div>
 
-      {/* Mobile Menu Overlay */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden absolute top-20 left-0 w-full bg-white/95 backdrop-blur-xl border-b border-gray-200 shadow-xl fade-in-up">
+      {/* Mobile Menu Overlay & Content */}
+      <div 
+        className={`md:hidden fixed inset-0 top-20 z-40 transition-all duration-300 ease-in-out ${
+            isMobileMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'
+        }`}
+      >
+        {/* Backdrop Overlay with blur */}
+        <div 
+            className="absolute inset-0 bg-navy-900/40 backdrop-blur-sm transition-opacity duration-300"
+            onClick={() => setIsMobileMenuOpen(false)}
+        />
+
+        {/* Menu Items Container */}
+        <div 
+            className={`relative bg-white/95 backdrop-blur-xl border-b border-gray-200 shadow-xl transition-all duration-300 ease-out transform ${
+                isMobileMenuOpen ? 'translate-y-0 opacity-100' : '-translate-y-4 opacity-0'
+            }`}
+        >
             <div className="flex flex-col p-4 space-y-2">
                 <button 
                     onClick={() => handleNavClick('landing')} 
-                    className="p-4 rounded-xl hover:bg-navy-50 text-left font-medium text-gray-700 hover:text-navy-900 transition-all flex items-center justify-between"
+                    className="p-4 rounded-xl hover:bg-navy-50 text-left font-medium text-gray-700 hover:text-navy-900 transition-all flex items-center justify-between group"
                 >
                     {t.home}
                 </button>
@@ -144,13 +160,13 @@ const Navbar: React.FC<NavbarProps> = ({ currentLang, setLang, t, setView }) => 
                 </button>
                 <button 
                     onClick={() => handleNavClick('about')} 
-                    className="p-4 rounded-xl hover:bg-navy-50 text-left font-medium text-gray-700 hover:text-navy-900 transition-all flex items-center justify-between"
+                    className="p-4 rounded-xl hover:bg-navy-50 text-left font-medium text-gray-700 hover:text-navy-900 transition-all flex items-center justify-between group"
                 >
                     {t.resources}
                 </button>
             </div>
         </div>
-      )}
+      </div>
     </nav>
   );
 };
