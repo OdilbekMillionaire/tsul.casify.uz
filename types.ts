@@ -1,12 +1,27 @@
 export type Language = 'uz_lat' | 'uz_cyr' | 'ru' | 'en';
 
 export enum LegalArea {
-  CIVIL = 'Civil',
-  CRIMINAL = 'Criminal',
   ADMINISTRATIVE = 'Administrative',
-  ECONOMIC = 'Economic',
+  BANKING = 'Banking',
+  BANKRUPTCY = 'Bankruptcy',
+  CIVIL = 'Civil',
+  CONSTITUTIONAL = 'Constitutional',
+  CONTRACT = 'Contract',
+  CORPORATE = 'Corporate',
+  CRIMINAL = 'Criminal',
+  CUSTOMS = 'Customs',
   FAMILY = 'Family',
-  LABOR = 'Labor'
+  HOUSING = 'Housing',
+  IMMIGRATION = 'Immigration',
+  INSURANCE = 'Insurance',
+  INTELLECTUAL_PROPERTY = 'Intellectual Property',
+  INTERNATIONAL = 'International',
+  INVESTMENT = 'Investment',
+  LABOR = 'Labor',
+  PROCEDURAL = 'Procedural',
+  PROPERTY = 'Property',
+  TAX = 'Tax',
+  TORT = 'Tort'
 }
 
 export enum AnalysisTone {
@@ -19,10 +34,9 @@ export interface CaseData {
   jurisdiction: string;
   area: LegalArea;
   facts: string;
-  claimant: string;
-  respondent: string;
   tone: AnalysisTone;
   isDeepAnalysis: boolean;
+  showLegalResolution: boolean;
 }
 
 export interface IracItem {
@@ -32,15 +46,22 @@ export interface IracItem {
   conclusion: string;
 }
 
+export interface Source {
+  title: string;
+  uri: string;
+}
+
 export interface LegalMemo {
   title: string;
   summary: string;
+  resolution?: string;
   issues: string[];
   iracAnalysis: IracItem[];
   risks: string[];
   evidenceChecklist: string[];
   nextSteps: string[];
   disclaimer: string;
+  sources?: Source[];
 }
 
 export type ViewState = 'landing' | 'new-case' | 'result' | 'about';
@@ -73,28 +94,37 @@ export interface Translations {
     areaLabel: string;
     factsLabel: string;
     factsPlaceholder: string;
-    partiesLabel: string;
-    claimantPlaceholder: string;
-    respondentPlaceholder: string;
     toneLabel: string;
     depthLabel: string;
     generateBtn: string;
     generating: string;
+    piiWarning: string;
+    deepAnalysisLabel: string;
+    resolutionLabel: string;
+    tones: {
+      professional: string;
+      student: string;
+    };
+    buttons: {
+      nextFacts: string;
+      nextSettings: string;
+      back: string;
+    };
     tooltips: {
       title: string;
       jurisdiction: string;
       area: string;
       facts: string;
-      parties: string;
       tone: string;
       depth: string;
     };
     validation: {
       required: string;
-      minLength: string;
     };
   };
   result: {
+    privileged: string;
+    generatedBy: string;
     summaryHeader: string;
     factsHeader: string;
     analysisHeader: string;
@@ -106,6 +136,11 @@ export interface Translations {
     printBtn: string;
     printPreparing: string;
     newCaseBtn: string;
+    sourcesHeader: string;
+    practiceAi: {
+      title: string;
+      greeting: string;
+    };
   };
   about: {
     tagline: string;
@@ -114,6 +149,8 @@ export interface Translations {
     team: { title: string; text: string };
   };
   footer: {
+    platformHeader: string;
+    disclaimerHeader: string;
     disclaimer: string;
     copyright: string;
     links: {

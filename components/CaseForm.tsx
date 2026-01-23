@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { Translations, CaseData, LegalArea, AnalysisTone } from '../types';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Translations, CaseData, LegalArea, AnalysisTone, Language } from '../types';
 import { FileText, Users, Sliders, Play, AlertCircle, Info, XCircle } from 'lucide-react';
+import { LEGAL_AREA_TRANSLATIONS } from '../constants';
 
 interface CaseFormProps {
   t: Translations['form'];
   initialData: CaseData;
   onSubmit: (data: CaseData) => void;
   isLoading: boolean;
+  lang: Language;
 }
 
 // Internal reusable Tooltip component
@@ -20,21 +22,27 @@ const Tooltip = ({ text }: { text: string }) => (
   </div>
 );
 
-const CaseForm: React.FC<CaseFormProps> = ({ t, initialData, onSubmit, isLoading }) => {
+const CaseForm: React.FC<CaseFormProps> = ({ t, initialData, onSubmit, isLoading, lang }) => {
   const [data, setData] = useState<CaseData>(initialData);
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Sort legal areas alphabetically based on the passed language prop
+  const sortedLegalAreas = useMemo(() => {
+    const areas = Object.values(LegalArea).map(area => ({
+        value: area,
+        label: LEGAL_AREA_TRANSLATIONS[lang][area]
+    }));
+    
+    return areas.sort((a, b) => a.label.localeCompare(b.label));
+  }, [lang]);
+
   const validate = (formData: CaseData) => {
     const newErrors: Record<string, string> = {};
     if (!formData.title.trim()) newErrors.title = t.validation.required;
-    if (!formData.claimant.trim()) newErrors.claimant = t.validation.required;
-    if (!formData.respondent.trim()) newErrors.respondent = t.validation.required;
     if (!formData.facts.trim()) {
         newErrors.facts = t.validation.required;
-    } else if (formData.facts.length < 50) {
-        newErrors.facts = t.validation.minLength;
     }
     return newErrors;
   };
@@ -56,7 +64,7 @@ const CaseForm: React.FC<CaseFormProps> = ({ t, initialData, onSubmit, isLoading
   };
 
   const isMetadataValid = !errors.title;
-  const isFactsValid = !errors.facts && !errors.claimant && !errors.respondent;
+  const isFactsValid = !errors.facts;
 
   const handleNext = () => {
     // Mark all fields in current step as touched to show errors if user tries to skip
@@ -65,7 +73,7 @@ const CaseForm: React.FC<CaseFormProps> = ({ t, initialData, onSubmit, isLoading
         if (isMetadataValid) setStep(2);
     }
     if (step === 2) {
-        setTouched(prev => ({ ...prev, claimant: true, respondent: true, facts: true }));
+        setTouched(prev => ({ ...prev, facts: true }));
         if (isFactsValid) setStep(3);
     }
   };
@@ -154,8 +162,8 @@ const CaseForm: React.FC<CaseFormProps> = ({ t, initialData, onSubmit, isLoading
                             onChange={(e) => updateField('area', e.target.value as LegalArea)}
                             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-500 outline-none bg-white"
                         >
-                            {Object.values(LegalArea).map(area => (
-                                <option key={area} value={area}>{area}</option>
+                            {sortedLegalAreas.map(item => (
+                                <option key={item.value} value={item.value}>{item.label}</option>
                             ))}
                         </select>
                     </div>
@@ -166,7 +174,7 @@ const CaseForm: React.FC<CaseFormProps> = ({ t, initialData, onSubmit, isLoading
                         onClick={handleNext} 
                         className="bg-navy-900 text-white px-6 py-3 rounded-lg font-semibold hover:bg-navy-800 transition-colors shadow-md hover:shadow-lg"
                     >
-                        Next: Facts
+                        {t.buttons.nextFacts}
                     </button>
                 </div>
             </div>
@@ -176,47 +184,11 @@ const CaseForm: React.FC<CaseFormProps> = ({ t, initialData, onSubmit, isLoading
             <div className="p-8 space-y-6 fade-in-up">
                 <h2 className="font-serif text-2xl font-bold text-navy-900 border-b pb-4 mb-6">{t.steps.facts}</h2>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div>
-                        <label className="block text-sm font-bold text-navy-800 mb-2 flex items-center">
-                            {t.partiesLabel} ({t.claimantPlaceholder})
-                            <Tooltip text={t.tooltips.parties} />
-                        </label>
-                        <input 
-                            type="text" 
-                            placeholder={t.claimantPlaceholder}
-                            value={data.claimant}
-                            onChange={(e) => updateField('claimant', e.target.value)}
-                            onBlur={() => handleBlur('claimant')}
-                            className={getInputClass('claimant')}
-                        />
-                        <ErrorMessage field="claimant" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-bold text-navy-800 mb-2 flex items-center">
-                            {t.partiesLabel} ({t.respondentPlaceholder})
-                            <Tooltip text={t.tooltips.parties} />
-                        </label>
-                        <input 
-                            type="text" 
-                            placeholder={t.respondentPlaceholder}
-                            value={data.respondent}
-                            onChange={(e) => updateField('respondent', e.target.value)}
-                            onBlur={() => handleBlur('respondent')}
-                            className={getInputClass('respondent')}
-                        />
-                        <ErrorMessage field="respondent" />
-                    </div>
-                </div>
-
                 <div>
                     <label className="block text-sm font-bold text-navy-800 mb-2 flex justify-between items-center">
                         <span className="flex items-center">
                             {t.factsLabel}
                             <Tooltip text={t.tooltips.facts} />
-                        </span>
-                        <span className={`text-xs ${data.facts.length < 50 ? 'text-red-500' : 'text-green-600'}`}>
-                             {data.facts.length} chars (min 50)
                         </span>
                     </label>
                     <textarea 
@@ -230,12 +202,12 @@ const CaseForm: React.FC<CaseFormProps> = ({ t, initialData, onSubmit, isLoading
                 </div>
 
                 <div className="flex justify-between mt-8">
-                    <button onClick={() => setStep(1)} className="text-gray-500 font-medium hover:text-navy-900">Back</button>
+                    <button onClick={() => setStep(1)} className="text-gray-500 font-medium hover:text-navy-900">{t.buttons.back}</button>
                     <button 
                         onClick={handleNext} 
                         className="bg-navy-900 text-white px-6 py-3 rounded-lg font-semibold hover:bg-navy-800 transition-colors shadow-md hover:shadow-lg"
                     >
-                        Next: Settings
+                         {t.buttons.nextSettings}
                     </button>
                 </div>
             </div>
@@ -258,28 +230,48 @@ const CaseForm: React.FC<CaseFormProps> = ({ t, initialData, onSubmit, isLoading
                                     onClick={() => updateField('tone', tone)}
                                     className={`flex-1 py-3 px-4 rounded-lg border-2 font-medium transition-all ${data.tone === tone ? 'border-navy-900 bg-navy-50 text-navy-900' : 'border-gray-200 text-gray-500 hover:border-gray-300'}`}
                                 >
-                                    {tone}
+                                    {/* Map enum value to translated string key safely */}
+                                    {tone === AnalysisTone.PROFESSIONAL ? t.tones.professional : t.tones.student}
                                 </button>
                             ))}
                         </div>
                     </div>
                     
-                    <div>
-                         <label className="block text-sm font-bold text-navy-800 mb-2 flex items-center">
-                            {t.depthLabel}
-                            <Tooltip text={t.tooltips.depth} />
-                         </label>
-                        <div className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg">
-                            <input 
-                                type="checkbox" 
-                                id="deepAnalysis"
-                                checked={data.isDeepAnalysis}
-                                onChange={(e) => updateField('isDeepAnalysis', e.target.checked)}
-                                className="w-5 h-5 text-navy-900 rounded focus:ring-gold-500 border-gray-300"
-                            />
-                            <label htmlFor="deepAnalysis" className="text-sm text-gray-700 cursor-pointer select-none">
-                                Enable Deep Analysis (Slower, more comprehensive)
+                    <div className="space-y-4">
+                        {/* Deep Analysis Toggle */}
+                        <div>
+                            <label className="block text-sm font-bold text-navy-800 mb-2 flex items-center">
+                                {t.depthLabel}
+                                <Tooltip text={t.tooltips.depth} />
                             </label>
+                            <div className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg">
+                                <input 
+                                    type="checkbox" 
+                                    id="deepAnalysis"
+                                    checked={data.isDeepAnalysis}
+                                    onChange={(e) => updateField('isDeepAnalysis', e.target.checked)}
+                                    className="w-5 h-5 text-navy-900 rounded focus:ring-gold-500 border-gray-300"
+                                />
+                                <label htmlFor="deepAnalysis" className="text-sm text-gray-700 cursor-pointer select-none">
+                                    {t.deepAnalysisLabel}
+                                </label>
+                            </div>
+                        </div>
+
+                        {/* Legal Resolution Toggle */}
+                        <div>
+                             <div className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg">
+                                <input 
+                                    type="checkbox" 
+                                    id="showResolution"
+                                    checked={data.showLegalResolution}
+                                    onChange={(e) => updateField('showLegalResolution', e.target.checked)}
+                                    className="w-5 h-5 text-navy-900 rounded focus:ring-gold-500 border-gray-300"
+                                />
+                                <label htmlFor="showResolution" className="text-sm font-bold text-navy-900 cursor-pointer select-none">
+                                    {t.resolutionLabel}
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -287,13 +279,12 @@ const CaseForm: React.FC<CaseFormProps> = ({ t, initialData, onSubmit, isLoading
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
                     <AlertCircle className="w-5 h-5 text-amber-700 mt-0.5 flex-shrink-0" />
                     <p className="text-sm text-amber-800">
-                        You are about to generate a legal memorandum based on the provided facts. 
-                        Please ensure no sensitive personally identifiable information (PII) is included if not necessary.
+                        {t.piiWarning}
                     </p>
                 </div>
 
                 <div className="flex justify-between mt-8 pt-4 border-t border-gray-100">
-                    <button onClick={() => setStep(2)} className="text-gray-500 font-medium hover:text-navy-900">Back</button>
+                    <button onClick={() => setStep(2)} className="text-gray-500 font-medium hover:text-navy-900">{t.buttons.back}</button>
                     
                     <button 
                         onClick={() => onSubmit(data)}

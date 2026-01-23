@@ -60,10 +60,10 @@ function App() {
       case 'landing':
         return <LandingPage t={t} setView={setCurrentView} />;
       case 'new-case':
-        return <CaseForm t={t.form} initialData={caseData} onSubmit={handleCaseSubmit} isLoading={isLoading} />;
+        return <CaseForm t={t.form} initialData={caseData} onSubmit={handleCaseSubmit} isLoading={isLoading} lang={currentLang} />;
       case 'result':
         if (!memo) return <LandingPage t={t} setView={setCurrentView} />; // Fallback
-        return <ResultView memo={memo} caseData={caseData} t={t.result} setView={setCurrentView} />;
+        return <ResultView memo={memo} caseData={caseData} t={t.result} setView={setCurrentView} lang={currentLang} />;
       case 'about':
         return <AboutPage t={t.about} />;
       default:
@@ -106,7 +106,9 @@ function App() {
 
             {/* Links Column 1 */}
             <div>
-              <h4 className="font-bold text-white mb-6 uppercase text-xs tracking-wider opacity-80">Platform</h4>
+              <h4 className="font-bold text-white mb-6 uppercase text-xs tracking-wider opacity-80">
+                {TRANSLATIONS[currentLang].footer.platformHeader}
+              </h4>
               <ul className="space-y-4 text-sm text-gray-400">
                  <li><button onClick={() => setCurrentView('landing')} className="hover:text-gold-500 transition-colors text-left">{TRANSLATIONS[currentLang].nav.home}</button></li>
                  <li><button onClick={() => setCurrentView('new-case')} className="hover:text-gold-500 transition-colors text-left">{TRANSLATIONS[currentLang].nav.newCase}</button></li>
@@ -116,7 +118,9 @@ function App() {
 
              {/* Links Column 2 */}
              <div className="col-span-1 md:col-span-2">
-              <h4 className="font-bold text-white mb-6 uppercase text-xs tracking-wider opacity-80">Legal Disclaimer</h4>
+              <h4 className="font-bold text-white mb-6 uppercase text-xs tracking-wider opacity-80">
+                {TRANSLATIONS[currentLang].footer.disclaimerHeader}
+              </h4>
               <p className="text-gray-400 text-sm leading-relaxed border-l-2 border-gold-500 pl-4">
                  {TRANSLATIONS[currentLang].footer.disclaimer}
               </p>
