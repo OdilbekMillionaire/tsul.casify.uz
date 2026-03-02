@@ -8,6 +8,8 @@ import Logo from './components/Logo';
 import { generateLegalMemo } from './services/geminiService';
 import { INITIAL_CASE_DATA, TRANSLATIONS } from './constants';
 import { CaseData, Language, LegalMemo, ViewState } from './types';
+import SplineRobot from './components/SplineRobot';
+
 
 function App() {
   const [currentLang, setCurrentLang] = useState<Language>('uz_lat');
@@ -55,7 +57,7 @@ function App() {
 
   const renderView = () => {
     const t = TRANSLATIONS[currentLang];
-    
+
     switch (currentView) {
       case 'landing':
         return <LandingPage t={t} setView={setCurrentView} />;
@@ -73,13 +75,14 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-navy-900 pb-0 flex flex-col">
-      <Navbar 
-        currentLang={currentLang} 
-        setLang={handleLanguageChange} 
+      <Navbar
+        currentLang={currentLang}
+        setLang={handleLanguageChange}
         t={TRANSLATIONS[currentLang].nav}
         setView={setCurrentView}
       />
-      
+
+      <SplineRobot />
       <div className="pt-16 flex-grow">
         {renderView()}
       </div>
@@ -88,16 +91,16 @@ function App() {
       <footer className="bg-navy-900 text-white mt-auto pt-16 pb-8 border-t border-navy-800">
         <div className="container mx-auto px-6 md:px-12">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-            
+
             {/* Brand Column */}
             <div className="col-span-1 md:col-span-1">
               <div className="flex items-center gap-3 mb-6">
-                 <div className="bg-white/10 p-2 rounded-lg backdrop-blur-sm border border-white/10">
-                    <Logo className="w-6 h-6" /> 
-                 </div>
-                 <span className="font-serif text-xl font-bold tracking-tight text-white">
-                   {TRANSLATIONS[currentLang].nav.brand}
-                 </span>
+                <div className="bg-white/10 p-2 rounded-lg backdrop-blur-sm border border-white/10">
+                  <Logo className="w-6 h-6" />
+                </div>
+                <span className="font-serif text-xl font-bold tracking-tight text-white">
+                  {TRANSLATIONS[currentLang].nav.brand}
+                </span>
               </div>
               <p className="text-gray-400 text-sm leading-relaxed mb-6">
                 {TRANSLATIONS[currentLang].about.tagline}
@@ -110,19 +113,19 @@ function App() {
                 {TRANSLATIONS[currentLang].footer.platformHeader}
               </h4>
               <ul className="space-y-4 text-sm text-gray-400">
-                 <li><button onClick={() => setCurrentView('landing')} className="hover:text-gold-500 transition-colors text-left">{TRANSLATIONS[currentLang].nav.home}</button></li>
-                 <li><button onClick={() => setCurrentView('new-case')} className="hover:text-gold-500 transition-colors text-left">{TRANSLATIONS[currentLang].nav.newCase}</button></li>
-                 <li><button onClick={() => setCurrentView('about')} className="hover:text-gold-500 transition-colors text-left">{TRANSLATIONS[currentLang].nav.resources}</button></li>
+                <li><button onClick={() => setCurrentView('landing')} className="hover:text-gold-500 transition-colors text-left">{TRANSLATIONS[currentLang].nav.home}</button></li>
+                <li><button onClick={() => setCurrentView('new-case')} className="hover:text-gold-500 transition-colors text-left">{TRANSLATIONS[currentLang].nav.newCase}</button></li>
+                <li><button onClick={() => setCurrentView('about')} className="hover:text-gold-500 transition-colors text-left">{TRANSLATIONS[currentLang].nav.resources}</button></li>
               </ul>
             </div>
 
-             {/* Links Column 2 */}
-             <div className="col-span-1 md:col-span-2">
+            {/* Links Column 2 */}
+            <div className="col-span-1 md:col-span-2">
               <h4 className="font-bold text-white mb-6 uppercase text-xs tracking-wider opacity-80">
                 {TRANSLATIONS[currentLang].footer.disclaimerHeader}
               </h4>
               <p className="text-gray-400 text-sm leading-relaxed border-l-2 border-gold-500 pl-4">
-                 {TRANSLATIONS[currentLang].footer.disclaimer}
+                {TRANSLATIONS[currentLang].footer.disclaimer}
               </p>
             </div>
 
@@ -130,14 +133,14 @@ function App() {
 
           {/* Bottom Bar */}
           <div className="pt-8 border-t border-navy-800 flex flex-col md:flex-row justify-between items-center gap-4">
-             <p className="text-gray-500 text-xs">
-                {TRANSLATIONS[currentLang].footer.copyright}
-             </p>
-             <div className="flex gap-6 text-xs text-gray-500">
-                <button className="hover:text-white transition-colors">{TRANSLATIONS[currentLang].footer.links.privacy}</button>
-                <button className="hover:text-white transition-colors">{TRANSLATIONS[currentLang].footer.links.terms}</button>
-                <button className="hover:text-white transition-colors">{TRANSLATIONS[currentLang].footer.links.contact}</button>
-             </div>
+            <p className="text-gray-500 text-xs">
+              {TRANSLATIONS[currentLang].footer.copyright}
+            </p>
+            <div className="flex gap-6 text-xs text-gray-500">
+              <button className="hover:text-white transition-colors">{TRANSLATIONS[currentLang].footer.links.privacy}</button>
+              <button className="hover:text-white transition-colors">{TRANSLATIONS[currentLang].footer.links.terms}</button>
+              <button className="hover:text-white transition-colors">{TRANSLATIONS[currentLang].footer.links.contact}</button>
+            </div>
           </div>
         </div>
       </footer>
