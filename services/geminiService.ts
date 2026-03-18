@@ -1,8 +1,8 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { CaseData, Language, LegalMemo, Source, CounteranalysisResult, DocumentType, CaseTimeline } from "../types";
+import { CaseData, Language, LegalMemo, Source, CounteranalysisResult, DocumentType, CaseTimeline, ChatMessage, Flashcard } from "../types";
 
 // Model Configuration
-const PRIMARY_MODEL = 'gemini-3-flash';
+const PRIMARY_MODEL = 'gemini-2.5-flash';
 const FALLBACK_MODEL = 'gemini-2.0-flash';
 const TTS_MODEL = 'gemini-2.5-flash-preview-tts';
 
@@ -145,27 +145,47 @@ export const generateLegalMemo = async (
     2. FIRST, give the full case details, background, and procedural history in the summary section.
     3. Structure the rest as a formal internal legal case study analysis.
     4. Provide relevant case management information where applicable.
-    ${!caseData.showLegalResolution ? "5. IMPORTANT: DO NOT include the final court decision or resolution in the analysis. Set the 'resolution' field to an empty string." : "5. Include the final court decision and resolution in the 'resolution' field."}
+    ${!caseData.showLegalResolution ? "5. IMPORTANT: DO NOT include the final court decision or resolution. Set 'resolution' to empty string." : "5. Include the final court decision and resolution in the 'resolution' field."}
+
+    OUTPUT FORMAT: Return ONLY a valid JSON object with this exact structure (no markdown, no extra text):
+    {
+      "title": "string",
+      "summary": "string",
+      "resolution": "string",
+      "issues": ["string"],
+      "iracAnalysis": [{"issue":"string","rule":"string","application":"string","conclusion":"string"}],
+      "risks": ["string"],
+      "evidenceChecklist": ["string"],
+      "nextSteps": ["string"],
+      "disclaimer": "string"
+    }
   `;
 
-  const generateWithModel = async (modelName: string, isFallback: boolean = false) => {
-    const thinkingBudget = isFallback ? 2048 : 4096;
+  const generateWithModel = async (modelName: string) => {
     const response = await ai.models.generateContent({
       model: modelName,
       contents: prompt,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         tools: [{ googleSearch: {} }],
-        responseMimeType: 'application/json',
-        responseSchema: RESPONSE_SCHEMA,
-        thinkingConfig: { thinkingBudget }
       }
     });
 
-    const text = response.text;
-    if (!text) throw new Error(`Empty response from AI using model ${modelName}`);
+    const rawText = response.text;
+    if (!rawText) throw new Error(`Empty response from AI using model ${modelName}`);
 
-    const parsedMemo = JSON.parse(text) as LegalMemo;
+    // Strip markdown code blocks if present
+    let jsonText = rawText.trim();
+    const fenceMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (fenceMatch) {
+      jsonText = fenceMatch[1].trim();
+    } else {
+      const start = jsonText.indexOf('{');
+      const end = jsonText.lastIndexOf('}');
+      if (start !== -1 && end !== -1) jsonText = jsonText.slice(start, end + 1);
+    }
+
+    const parsedMemo = JSON.parse(jsonText) as LegalMemo;
 
     const sources: Source[] = [];
     const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
@@ -187,7 +207,7 @@ export const generateLegalMemo = async (
     if (isQuotaError(error)) {
       console.warn(`Primary model quota exceeded. Switching to fallback: ${FALLBACK_MODEL}`);
       try {
-        return await generateWithModel(FALLBACK_MODEL, true);
+        return await generateWithModel(FALLBACK_MODEL);
       } catch (fallbackError) {
         console.error("Fallback model also failed:", fallbackError);
         throw fallbackError;
@@ -437,4 +457,121 @@ export const generateTimeline = async (
 
   if (!response.text) throw new Error("Empty response from AI");
   return JSON.parse(response.text) as CaseTimeline;
+};
+// ─────────────────────────────────────────────
+// 7. FEATURE: Practice AI Chat
+// ─────────────────────────────────────────────
+export const chatAboutCase = async (
+  memo: LegalMemo,
+  caseData: CaseData,
+  history: ChatMessage[],
+  userMessage: string,
+  language: Language
+): Promise<string> => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) throw new Error("API Key not found");
+
+  const ai = new GoogleGenAI({ apiKey });
+
+  const systemInstruction = `You are a legal AI assistant helping analyze a specific case. You have full knowledge of the following case:
+
+CASE TITLE: ${memo.title}
+LEGAL AREA: ${caseData.area}
+JURISDICTION: ${caseData.jurisdiction}
+
+CASE SUMMARY:
+${memo.summary}
+
+KEY LEGAL ISSUES: ${memo.issues.join('; ')}
+RISKS: ${memo.risks.join('; ')}
+EVIDENCE CHECKLIST: ${memo.evidenceChecklist.join('; ')}
+NEXT STEPS: ${memo.nextSteps.join('; ')}
+${memo.resolution ? `RESOLUTION: ${memo.resolution}` : ''}
+IRAC ANALYSIS:
+${memo.iracAnalysis.map(i => `Issue: ${i.issue}\nRule: ${i.rule}\nApplication: ${i.application}\nConclusion: ${i.conclusion}`).join('\n\n')}
+
+Your role:
+- Answer questions about THIS specific case
+- Help the user understand legal concepts from the case
+- Simulate mock questioning or test their understanding
+- Suggest stronger arguments or identify weaknesses
+- Be concise, professional, and educational
+- Respond in ${LANG_MAP[language]}
+- Never claim to be an AI — respond as a knowledgeable legal colleague`;
+
+  const contents = [
+    ...history.map(msg => ({
+      role: msg.role as 'user' | 'model',
+      parts: [{ text: msg.text }]
+    })),
+    { role: 'user' as const, parts: [{ text: userMessage }] }
+  ];
+
+  const response = await ai.models.generateContent({
+    model: PRIMARY_MODEL,
+    contents,
+    config: { systemInstruction }
+  });
+
+  return response.text || 'Could not generate a response. Please try again.';
+};
+
+// ─────────────────────────────────────────────
+// 8. FEATURE: Flashcard Generator
+// ─────────────────────────────────────────────
+const FLASHCARD_SCHEMA: Schema = {
+  type: Type.ARRAY,
+  items: {
+    type: Type.OBJECT,
+    properties: {
+      front: { type: Type.STRING, description: "Question, legal term, or concept prompt" },
+      back: { type: Type.STRING, description: "Answer, definition, or explanation" }
+    },
+    required: ["front", "back"]
+  }
+};
+
+export const generateFlashcards = async (
+  memo: LegalMemo,
+  caseData: CaseData,
+  language: Language
+): Promise<Flashcard[]> => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) throw new Error("API Key not found");
+
+  const ai = new GoogleGenAI({ apiKey });
+
+  const prompt = `Generate 12-15 educational flashcards from this legal case for studying and exam preparation.
+
+CASE: ${memo.title}
+LEGAL AREA: ${caseData.area}
+SUMMARY: ${memo.summary}
+IRAC:
+${memo.iracAnalysis.map(i => `Issue: ${i.issue} | Rule: ${i.rule} | Conclusion: ${i.conclusion}`).join('\n')}
+RISKS: ${memo.risks.join('; ')}
+KEY ISSUES: ${memo.issues.join('; ')}
+
+Create flashcards covering:
+- Key legal terms and definitions used in this case
+- Each IRAC element as a question (e.g. "What is the rule for X?" → answer)
+- Legal principles and doctrines demonstrated
+- Procedural steps and their legal basis
+- Risk factors and mitigation strategies
+- Critical dates and procedural requirements
+
+Front: short question or term. Back: clear, concise answer (2-4 sentences max).
+Language: ${LANG_MAP[language]}`;
+
+  const response = await ai.models.generateContent({
+    model: PRIMARY_MODEL,
+    contents: prompt,
+    config: {
+      responseMimeType: 'application/json',
+      responseSchema: FLASHCARD_SCHEMA,
+      thinkingConfig: { thinkingBudget: 1024 }
+    }
+  });
+
+  if (!response.text) throw new Error("No flashcards generated");
+  return JSON.parse(response.text) as Flashcard[];
 };

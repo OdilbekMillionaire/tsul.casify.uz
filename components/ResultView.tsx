@@ -1,14 +1,17 @@
 import React, { useState, useRef } from 'react';
 import { LegalMemo, CaseData, Translations, ViewState, Language, CounteranalysisResult, CaseTimeline } from '../types';
-import { Printer, Copy, RefreshCw, AlertTriangle, CheckSquare, Briefcase, FileText, Check, Loader2, Link2, ExternalLink, Bot, Gavel, X, Swords, Clock, Volume2, VolumeX, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
+import { Printer, Copy, RefreshCw, AlertTriangle, CheckSquare, Briefcase, FileText, Check, Loader2, Link2, ExternalLink, Gavel, X, Swords, Clock, Volume2, VolumeX, AlertCircle, Layers } from 'lucide-react';
 import { LEGAL_AREA_TRANSLATIONS } from '../constants';
 import { generateCounterarguments, generateAudioBriefing, generateTimeline } from '../services/geminiService';
 import DocumentDraftModal from './DocumentDraftModal';
+import PracticeAiChat from './PracticeAiChat';
+import FlashcardsModal from './FlashcardsModal';
 
 interface ResultViewProps {
   memo: LegalMemo;
   caseData: CaseData;
   t: Translations['result'];
+  tAi: Translations['aiFeatures'];
   setView: (view: ViewState) => void;
   lang: Language;
 }
@@ -41,10 +44,9 @@ function playPcmAudio(base64Data: string): HTMLAudioElement {
   return audio;
 }
 
-const ResultView: React.FC<ResultViewProps> = ({ memo, caseData, t, setView, lang }) => {
+const ResultView: React.FC<ResultViewProps> = ({ memo, caseData, t, tAi, setView, lang }) => {
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle');
   const [printStatus, setPrintStatus] = useState<'idle' | 'preparing'>('idle');
-  const [isWidgetVisible, setIsWidgetVisible] = useState(true);
 
   // Feature 1: Counterargument Simulator
   const [counterData, setCounterData] = useState<CounteranalysisResult | null>(null);
@@ -54,6 +56,9 @@ const ResultView: React.FC<ResultViewProps> = ({ memo, caseData, t, setView, lan
 
   // Feature 2: Document Draft Modal
   const [isDraftModalOpen, setIsDraftModalOpen] = useState(false);
+
+  // Feature 3: Flashcards
+  const [isFlashcardsOpen, setIsFlashcardsOpen] = useState(false);
 
   // Feature 4: Audio Briefing (TTS)
   const [isAudioLoading, setIsAudioLoading] = useState(false);
@@ -193,55 +198,89 @@ const ResultView: React.FC<ResultViewProps> = ({ memo, caseData, t, setView, lan
             </button>
           </div>
 
-          {/* New AI Feature Buttons */}
-          <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col gap-2">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">AI Features</p>
+          {/* AI Feature Cards */}
+          <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">{tAi.header}</p>
+
+            {/* Flashcards */}
+            <button
+              onClick={() => setIsFlashcardsOpen(true)}
+              className="w-full flex items-center gap-3 p-3 rounded-xl bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 hover:border-indigo-200 text-indigo-900 transition-all group text-left"
+            >
+              <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                <Layers className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <p className="text-xs font-bold">{tAi.flashcards.title}</p>
+                <p className="text-[10px] text-indigo-600">{tAi.flashcards.desc}</p>
+              </div>
+            </button>
 
             {/* Counterarguments */}
             <button
               onClick={handleGenerateCounter}
               disabled={isCounterLoading}
-              className="flex items-center gap-2 text-sm font-medium p-2 rounded-lg border border-transparent hover:bg-red-50 hover:border-red-100 text-red-700 transition-all disabled:opacity-50"
+              className="w-full flex items-center gap-3 p-3 rounded-xl bg-red-50 border border-red-100 hover:bg-red-100 hover:border-red-200 text-red-900 transition-all group text-left disabled:opacity-60"
             >
-              {isCounterLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Swords className="w-4 h-4" />}
-              {counterData ? (showCounter ? 'Hide Counterarguments' : 'Show Counterarguments') : (isCounterLoading ? 'Analyzing...' : 'Simulate Counterarguments')}
+              <div className="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                {isCounterLoading ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : <Swords className="w-4 h-4 text-white" />}
+              </div>
+              <div>
+                <p className="text-xs font-bold">{isCounterLoading ? tAi.counterarguments.analyzing : counterData ? (showCounter ? tAi.counterarguments.hide : tAi.counterarguments.show) : tAi.counterarguments.title}</p>
+                <p className="text-[10px] text-red-600">{tAi.counterarguments.desc}</p>
+              </div>
             </button>
 
             {/* Document Drafter */}
             <button
               onClick={() => setIsDraftModalOpen(true)}
-              className="flex items-center gap-2 text-sm font-medium p-2 rounded-lg border border-transparent hover:bg-blue-50 hover:border-blue-100 text-blue-700 transition-all"
+              className="w-full flex items-center gap-3 p-3 rounded-xl bg-blue-50 border border-blue-100 hover:bg-blue-100 hover:border-blue-200 text-blue-900 transition-all group text-left"
             >
-              <FileText className="w-4 h-4" />
-              Draft Legal Document
+              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                <FileText className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <p className="text-xs font-bold">{tAi.draftDocument.title}</p>
+                <p className="text-[10px] text-blue-600">{tAi.draftDocument.desc}</p>
+              </div>
             </button>
 
             {/* Audio Briefing */}
             <button
               onClick={handleAudio}
               disabled={isAudioLoading}
-              className={`flex items-center gap-2 text-sm font-medium p-2 rounded-lg border border-transparent transition-all disabled:opacity-50 ${
-                isPlaying ? 'bg-purple-50 border-purple-100 text-purple-700' : 'hover:bg-purple-50 hover:border-purple-100 text-purple-700'
+              className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all group text-left disabled:opacity-60 ${
+                isPlaying ? 'bg-purple-100 border-purple-200 text-purple-900' : 'bg-purple-50 border-purple-100 hover:bg-purple-100 hover:border-purple-200 text-purple-900'
               }`}
             >
-              {isAudioLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : isPlaying ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-              {isAudioLoading ? 'Generating audio...' : isPlaying ? 'Stop Briefing' : 'Listen to Briefing'}
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform ${isPlaying ? 'bg-purple-700' : 'bg-purple-600'}`}>
+                {isAudioLoading ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : isPlaying ? <VolumeX className="w-4 h-4 text-white" /> : <Volume2 className="w-4 h-4 text-white" />}
+              </div>
+              <div>
+                <p className="text-xs font-bold">{isAudioLoading ? tAi.audioBriefing.generating : isPlaying ? tAi.audioBriefing.stop : tAi.audioBriefing.title}</p>
+                <p className="text-[10px] text-purple-600">{tAi.audioBriefing.desc}</p>
+              </div>
             </button>
 
             {/* Timeline */}
             <button
               onClick={handleGenerateTimeline}
               disabled={isTimelineLoading}
-              className="flex items-center gap-2 text-sm font-medium p-2 rounded-lg border border-transparent hover:bg-emerald-50 hover:border-emerald-100 text-emerald-700 transition-all disabled:opacity-50"
+              className="w-full flex items-center gap-3 p-3 rounded-xl bg-emerald-50 border border-emerald-100 hover:bg-emerald-100 hover:border-emerald-200 text-emerald-900 transition-all group text-left disabled:opacity-60"
             >
-              {isTimelineLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Clock className="w-4 h-4" />}
-              {timelineData ? (showTimeline ? 'Hide Timeline' : 'Show Timeline') : (isTimelineLoading ? 'Building timeline...' : 'Case Timeline & Deadlines')}
+              <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                {isTimelineLoading ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : <Clock className="w-4 h-4 text-white" />}
+              </div>
+              <div>
+                <p className="text-xs font-bold">{isTimelineLoading ? tAi.timeline.building : timelineData ? (showTimeline ? tAi.timeline.hide : tAi.timeline.show) : tAi.timeline.title}</p>
+                <p className="text-[10px] text-emerald-600">{tAi.timeline.desc}</p>
+              </div>
             </button>
 
             {/* Error notices */}
-            {counterError && <p className="text-xs text-red-500 px-2">{counterError}</p>}
-            {audioError && <p className="text-xs text-red-500 px-2">{audioError}</p>}
-            {timelineError && <p className="text-xs text-red-500 px-2">{timelineError}</p>}
+            {counterError && <p className="text-xs text-red-500 px-1 pt-1">{counterError}</p>}
+            {audioError && <p className="text-xs text-red-500 px-1 pt-1">{audioError}</p>}
+            {timelineError && <p className="text-xs text-red-500 px-1 pt-1">{timelineError}</p>}
           </div>
         </div>
       </aside>
@@ -543,32 +582,8 @@ const ResultView: React.FC<ResultViewProps> = ({ memo, caseData, t, setView, lan
         )}
       </main>
 
-      {/* Floating Practice AI Widget */}
-      {isWidgetVisible && (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2 animate-in slide-in-from-bottom-4 fade-in duration-500">
-          <div className="bg-white p-4 rounded-2xl rounded-tr-sm shadow-2xl border border-gray-200 max-w-xs mb-2 relative">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-navy-900 flex items-center justify-center flex-shrink-0">
-                <Bot className="w-5 h-5 text-gold-500" />
-              </div>
-              <div>
-                <h4 className="font-bold text-navy-900 text-sm">{t.practiceAi.title}</h4>
-                <p className="text-xs text-gray-600 mt-1 leading-relaxed">"{t.practiceAi.greeting}"</p>
-              </div>
-              <button
-                onClick={() => setIsWidgetVisible(false)}
-                className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow-md border border-gray-100 text-gray-400 hover:text-red-500 transition-colors"
-                aria-label="Close widget"
-              >
-                <X size={14} />
-              </button>
-            </div>
-          </div>
-          <div className="w-14 h-14 bg-navy-900 rounded-full shadow-lg flex items-center justify-center border-4 border-white cursor-pointer hover:bg-navy-800 transition-colors">
-            <Bot className="w-7 h-7 text-gold-500" />
-          </div>
-        </div>
-      )}
+      {/* Practice AI Chat (Feature 1) */}
+      <PracticeAiChat memo={memo} caseData={caseData} lang={lang} />
 
       {/* Document Draft Modal (Feature 2) */}
       {isDraftModalOpen && (
@@ -577,6 +592,16 @@ const ResultView: React.FC<ResultViewProps> = ({ memo, caseData, t, setView, lan
           caseData={caseData}
           lang={lang}
           onClose={() => setIsDraftModalOpen(false)}
+        />
+      )}
+
+      {/* Flashcards Modal (Feature 3) */}
+      {isFlashcardsOpen && (
+        <FlashcardsModal
+          memo={memo}
+          caseData={caseData}
+          lang={lang}
+          onClose={() => setIsFlashcardsOpen(false)}
         />
       )}
     </div>

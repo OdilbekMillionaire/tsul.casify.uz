@@ -32,9 +32,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ t, setView }) => {
       {/* HERO SECTION */}
       <section className="relative h-[650px] md:h-[750px] flex items-center overflow-hidden">
         
-        {/* Carousel Backgrounds */}
+        {/* Carousel Backgrounds — visible on right half where gradient fades */}
         {HERO_IMAGES.map((img, index) => (
-            <div 
+            <div
                 key={index}
                 className={`absolute inset-0 z-0 bg-cover bg-center transition-opacity duration-1000 ease-in-out ${
                     index === currentImageIndex ? 'opacity-100' : 'opacity-0'
@@ -42,11 +42,24 @@ const LandingPage: React.FC<LandingPageProps> = ({ t, setView }) => {
                 style={{ backgroundImage: `url("${img}")` }}
             />
         ))}
-        
-        {/* Heavy Gradient Overlay - Navy to Transparent (Ensures text readability) */}
-        <div className="absolute inset-0 z-10 bg-gradient-to-r from-navy-900 via-navy-900/95 to-navy-900/40 md:to-transparent"></div>
-        
-        {/* Additional bottom fade for smooth transition to white strip */}
+
+        {/* Spline 3D Robot — fills right portion of hero as a visual backdrop */}
+        <div className="absolute top-0 right-0 h-full w-full md:w-3/5 z-5 pointer-events-none overflow-hidden">
+            <iframe
+                src="https://my.spline.design/nexbotrobotcharacterconcept-GMhByIfZsnPwyHWor7SGOF51/"
+                frameBorder={0}
+                title="OXFORDER AI Robot"
+                style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+                allow="fullscreen"
+            />
+            {/* Spline watermark cover */}
+            <div className="absolute bottom-0 right-0 w-40 h-10 bg-navy-900/80 z-10 pointer-events-none" />
+        </div>
+
+        {/* Gradient overlay — strong on left (text), fades right (shows robot) */}
+        <div className="absolute inset-0 z-10 bg-gradient-to-r from-navy-900 via-navy-900/90 to-navy-900/20 md:to-transparent"></div>
+
+        {/* Bottom fade */}
         <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-navy-900/50 to-transparent z-10"></div>
 
         {/* Hero Content */}
