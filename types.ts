@@ -66,6 +66,38 @@ export interface LegalMemo {
 
 export type ViewState = 'landing' | 'new-case' | 'result' | 'about';
 
+// ── Feature: Counterargument Simulator ──────────────────
+export interface CounteranalysisResult {
+  opposingPosition: string;
+  legalBasis: string;
+  iracAnalysis: IracItem[];
+  weaknesses: string[];
+  defenses: string[];
+}
+
+// ── Feature: Legal Document Drafter ─────────────────────
+export enum DocumentType {
+  COMPLAINT = "Complaint (Da'vonoMA)",
+  MOTION = 'Motion / Petition',
+  RESPONSE = 'Response Brief',
+  LEGAL_OPINION = 'Legal Opinion',
+  CONTRACT_CLAUSE = 'Contract Clause',
+}
+
+// ── Feature: Case Timeline & Deadline Tracker ───────────
+export interface TimelineEvent {
+  date: string;
+  event: string;
+  type: 'fact' | 'deadline' | 'missed' | 'upcoming';
+  legalSignificance: string;
+}
+
+export interface CaseTimeline {
+  events: TimelineEvent[];
+  statuteOfLimitationsNote: string;
+  criticalWarnings: string[];
+}
+
 export interface Translations {
   nav: {
     home: string;

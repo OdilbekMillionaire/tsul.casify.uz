@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Translations, CaseData, LegalArea, AnalysisTone, Language } from '../types';
-import { FileText, Users, Sliders, Play, AlertCircle, Info, XCircle } from 'lucide-react';
+import { FileText, Users, Sliders, Play, AlertCircle, Info, XCircle, Upload, Loader2, FileCheck } from 'lucide-react';
 import { LEGAL_AREA_TRANSLATIONS } from '../constants';
+import { extractFactsFromDocument } from '../services/geminiService';
 
 interface CaseFormProps {
   t: Translations['form'];
@@ -27,6 +28,51 @@ const CaseForm: React.FC<CaseFormProps> = ({ t, initialData, onSubmit, isLoading
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const SUPPORTED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'text/plain'];
+    if (!SUPPORTED_TYPES.includes(file.type)) {
+      alert('Unsupported file type. Please upload a PDF, image (JPG/PNG/WebP), or text file.');
+      return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      alert('File is too large. Maximum size is 20MB.');
+      return;
+    }
+
+    setIsExtracting(true);
+    setUploadedFileName(file.name);
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const dataUrl = event.target?.result as string;
+        // Strip the data URL prefix to get raw base64
+        const base64 = dataUrl.split(',')[1];
+        try {
+          const extractedFacts = await extractFactsFromDocument(base64, file.type);
+          updateField('facts', extractedFacts);
+        } catch (err: any) {
+          alert(`Could not read document: ${err.message}`);
+          setUploadedFileName(null);
+        } finally {
+          setIsExtracting(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      setIsExtracting(false);
+      setUploadedFileName(null);
+    }
+    // Reset input so same file can be re-uploaded
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   // Sort legal areas alphabetically based on the passed language prop
   const sortedLegalAreas = useMemo(() => {
@@ -191,7 +237,7 @@ const CaseForm: React.FC<CaseFormProps> = ({ t, initialData, onSubmit, isLoading
                             <Tooltip text={t.tooltips.facts} />
                         </span>
                     </label>
-                    <textarea 
+                    <textarea
                         value={data.facts}
                         onChange={(e) => updateField('facts', e.target.value)}
                         onBlur={() => handleBlur('facts')}
@@ -199,6 +245,64 @@ const CaseForm: React.FC<CaseFormProps> = ({ t, initialData, onSubmit, isLoading
                         className={`${getInputClass('facts')} h-64 resize-none font-sans leading-relaxed`}
                     ></textarea>
                      <ErrorMessage field="facts" />
+                </div>
+
+                {/* Document Upload */}
+                <div className="border-2 border-dashed border-gray-200 rounded-xl p-5 bg-gray-50 hover:border-navy-300 transition-colors">
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png,.webp,.txt"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                        id="doc-upload"
+                        disabled={isExtracting}
+                    />
+                    <div className="flex items-center gap-4">
+                        <div className="flex-shrink-0">
+                            {isExtracting ? (
+                                <div className="w-10 h-10 rounded-xl bg-navy-100 flex items-center justify-center">
+                                    <Loader2 className="w-5 h-5 text-navy-600 animate-spin" />
+                                </div>
+                            ) : uploadedFileName ? (
+                                <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center">
+                                    <FileCheck className="w-5 h-5 text-green-600" />
+                                </div>
+                            ) : (
+                                <div className="w-10 h-10 rounded-xl bg-navy-100 flex items-center justify-center">
+                                    <Upload className="w-5 h-5 text-navy-600" />
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            {isExtracting ? (
+                                <>
+                                    <p className="text-sm font-semibold text-navy-800">Reading document...</p>
+                                    <p className="text-xs text-gray-500 truncate">{uploadedFileName}</p>
+                                </>
+                            ) : uploadedFileName ? (
+                                <>
+                                    <p className="text-sm font-semibold text-green-700">Facts extracted successfully</p>
+                                    <p className="text-xs text-gray-500 truncate">{uploadedFileName}</p>
+                                </>
+                            ) : (
+                                <>
+                                    <p className="text-sm font-semibold text-navy-800">Or upload a document to auto-fill facts</p>
+                                    <p className="text-xs text-gray-500">PDF, JPG, PNG, WebP, or TXT — up to 20 MB</p>
+                                </>
+                            )}
+                        </div>
+                        <label
+                            htmlFor="doc-upload"
+                            className={`flex-shrink-0 px-4 py-2 rounded-lg text-sm font-semibold border transition-all cursor-pointer ${
+                                isExtracting
+                                    ? 'border-gray-200 text-gray-400 cursor-not-allowed bg-white'
+                                    : 'border-navy-900 text-navy-900 hover:bg-navy-900 hover:text-white bg-white'
+                            }`}
+                        >
+                            {uploadedFileName ? 'Replace' : 'Browse'}
+                        </label>
+                    </div>
                 </div>
 
                 <div className="flex justify-between mt-8">

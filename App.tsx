@@ -18,6 +18,13 @@ function App() {
   const [memo, setMemo] = useState<LegalMemo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Single Sign-On auto-clear
+  useEffect(() => {
+    if (window.location.hash.includes('access_token=')) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+  }, []);
+
   // Load persisted state on mount
   useEffect(() => {
     const savedLang = localStorage.getItem('casify_lang') as Language;
