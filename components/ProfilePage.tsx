@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { signOutUser } from '../services/firebaseService';
+import { signOutUser } from '../services/supabaseService';
 import { ViewState, Translations } from '../types';
 import { User, Mail, LogOut, Settings, Clock, Shield, Briefcase, Star } from 'lucide-react';
 
@@ -26,7 +26,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ setView, caseCount, t }) => {
     setView('landing');
   };
 
-  const joinDate = profile.createdAt?.toDate?.()?.toLocaleDateString() || '—';
+  const joinDate = profile.createdAt?.toDate?.()?.toLocaleDateString() ?? '—';
 
   return (
     <div className="min-h-screen pt-24 pb-16 px-4 container mx-auto max-w-3xl fade-in-up">

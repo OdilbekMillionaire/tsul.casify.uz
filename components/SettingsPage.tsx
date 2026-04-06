@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { updateUserProfile } from '../services/firebaseService';
+import { updateUserProfile } from '../services/supabaseService';
 import { ViewState, Translations } from '../types';
 import { Settings, User, Briefcase, Building, Save, ArrowLeft, CheckCircle } from 'lucide-react';
 

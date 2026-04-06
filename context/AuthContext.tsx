@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User } from 'firebase/auth';
-import { onAuthChange, createOrUpdateUserProfile, UserProfile } from '../services/firebaseService';
+import { NormalizedUser as User, UserProfile, onAuthChange, createOrUpdateUserProfile } from '../services/supabaseService';
 
 interface AuthContextType {
   user: User | null;

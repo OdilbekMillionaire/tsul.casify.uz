@@ -3,7 +3,7 @@ import { Globe, ChevronDown, Menu, X, Clock, LogIn, User, Settings, LogOut } fro
 import { Language, Translations, ViewState } from '../types';
 import Logo from './Logo';
 import { useAuth } from '../context/AuthContext';
-import { signInWithGoogle, signOutUser } from '../services/firebaseService';
+import { signInWithGoogle, signOutUser } from '../services/supabaseService';
 
 interface NavbarProps {
   currentLang: Language;
